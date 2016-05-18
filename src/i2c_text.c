@@ -55,9 +55,9 @@ static uint32_t i2cMasterHandleMEM[0x20];
 
 static volatile int intErrCode;
 
-/* text: POLE */
-static volatile unsigned int ledValues[] = {0x31, 0x03, 0xE3, 0x61};
+static volatile unsigned int ledValues[] = {0x31, 0x03, 0xE3, 0x61};  //POLE
 #define SHUTDOWN 10
+#define DELAY_TIME 1500000
 
 /* SysTick rate in Hz */
 #define TICKRATE_HZ (400)
@@ -71,7 +71,6 @@ static volatile bool ledState = false;
 #define LED1 0x02
 #define LED2 0x04
 #define LED3 0x08
-
 
 static volatile uint8_t displays[] = { LED0, LED1, LED2, LED3 };
 
@@ -314,7 +313,12 @@ int main(void)
 	/* Enable SysTick Timer */
 	SysTick_Config(SystemCoreClock / TICKRATE_HZ);
 
+
+
+	/* Toggle LED on other board via I2C */
 	while (1) {
+
+
 		for (int i = 0; i < 4; i++) {
 					ledValue = i;
 					switch (i) {
@@ -330,12 +334,14 @@ int main(void)
 					case 3:
 						displayNumber = LED3;
 						break;
+
 					default:
 						break;
-								}
+
+					}
 					sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPB_REG);
 					sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPA_REG);
-					delay(1500000);
+					delay(DELAY_TIME);
 
 				}
 
