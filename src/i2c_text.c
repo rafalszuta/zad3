@@ -55,9 +55,14 @@ static uint32_t i2cMasterHandleMEM[0x20];
 
 static volatile int intErrCode;
 
-static volatile unsigned int ledValues[] = {0x31, 0x03, 0xE3, 0x61};  //POLE
+static volatile unsigned int ledValues[] = {0x31, 0x03, 0xE3, 0x61, 0xFF};  //POLE
+
+
+/* ledValues[4]= 0xFF   */
+#define LED_OFF 4
 #define SHUTDOWN 10
 #define DELAY_TIME 10000
+
 
 /* SysTick rate in Hz */
 #define TICKRATE_HZ (400)
@@ -228,7 +233,7 @@ static void showNumberOnDisplay(uint8_t number, uint8_t display)
 	ledValue = number;
 	displayNumber = display;
 	/* Set LED state on slave device */
-//	sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPB_REG);
+	sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPB_REG);
 	sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPA_REG);
 	__WFI();
 }
@@ -318,30 +323,33 @@ int main(void)
 	/* Toggle LED on other board via I2C */
 	while (1) {
 
-
+      int display=0;
 		for (int i = 0; i < 4; i++) {
 					ledValue = i;
 					switch (i) {
 					case 0:
-						displayNumber = LED0;
+						displayNumber = displays[3];
 						break;
 					case 1:
-						displayNumber = LED1;
+						displayNumber = displays[2];
 						break;
 					case 2:
-						displayNumber = LED2;
+						displayNumber = displays[1];
 						break;
 					case 3:
-						displayNumber = LED3;
+						displayNumber = displays[0];
 						break;
 
 					default:
 						break;
 
 					}
+
 					sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPB_REG);
 					sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPA_REG);
 					delay(DELAY_TIME);
+					ledValue =LED_OFF;
+					sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPA_REG);
 
 				}
 
