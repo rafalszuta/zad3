@@ -57,7 +57,7 @@ static volatile int intErrCode;
 
 static volatile unsigned int ledValues[] = {0x31, 0x03, 0xE3, 0x61};  //POLE
 #define SHUTDOWN 10
-#define DELAY_TIME 1500000
+#define DELAY_TIME 10000
 
 /* SysTick rate in Hz */
 #define TICKRATE_HZ (400)
