@@ -39,7 +39,7 @@
 static I2C_HANDLE_T *i2cHandleMaster;
 
 /* Use a buffer size larger than the expected return value of
-   i2c_get_mem_size() for the static I2C handle type */
+ i2c_get_mem_size() for the static I2C handle type */
 static uint32_t i2cMasterHandleMEM[0x20];
 
 /* 100kbps I2C bit-rate */
@@ -52,17 +52,13 @@ static uint32_t i2cMasterHandleMEM[0x20];
 #define GPB_REG 0x10
 
 #define I2C_RD_CMD_BIT      (1)
-
 static volatile int intErrCode;
+static volatile unsigned int ledValues[] = { 0x31, 0x03, 0xE3, 0x61, 0xFF };
 
-static volatile unsigned int ledValues[] = {0x31, 0x03, 0xE3, 0x61, 0xFF};  //POLE
-
-
-/* ledValues[4]= 0xFF   */
+/* Display OFF: ledValues[4]= 0xFF   */
 #define LED_OFF 4
 #define SHUTDOWN 10
 #define DELAY_TIME 10000
-
 
 /* SysTick rate in Hz */
 #define TICKRATE_HZ (400)
@@ -91,10 +87,9 @@ static volatile uint8_t displays[] = { LED0, LED1, LED2, LED3 };
  * and stores the result to @a dest with leading zeros
  * RETURN: Number of hexdigits excluding leading zeros
  */
-static int Hex2Str(char *dest, uint32_t val)
-{
+static int Hex2Str(char *dest, uint32_t val) {
 	int i, ret = 0;
-	for (i = 0; i < sizeof(val) * 2; i ++) {
+	for (i = 0; i < sizeof(val) * 2; i++) {
 		int idx = val & 0xF;
 		dest[7 - i] = "0123456789ABCDEF"[idx];
 		val >>= 4;
@@ -106,8 +101,7 @@ static int Hex2Str(char *dest, uint32_t val)
 
 /* Prints a hexadecimal value with given string in front */
 /* Using printf might cause text section overflow */
-static void Print_Val(const char *str, uint32_t val)
-{
+static void Print_Val(const char *str, uint32_t val) {
 	char buf[9];
 	int ret;
 	buf[8] = 0;
@@ -118,9 +112,8 @@ static void Print_Val(const char *str, uint32_t val)
 }
 
 /* Initializes pin muxing for I2C interface - note that SystemInit() may
-   already setup your pin muxing at system startup */
-static void Init_I2C_PinMux(void)
-{
+ already setup your pin muxing at system startup */
+static void Init_I2C_PinMux(void) {
 	/* Enable the clock to the Switch Matrix */
 	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);
 
@@ -133,23 +126,22 @@ static void Init_I2C_PinMux(void)
 }
 
 /* Turn on LED to indicate an error */
-static void errorI2C(void)
-{
+static void errorI2C(void) {
 	Board_LED_Set(0, true);
-	while (1) {}
+	while (1) {
+	}
 }
 
 /* Setup I2C handle and parameters */
-static void setupI2CMaster()
-{
+static void setupI2CMaster() {
 	/* Enable I2C clock and reset I2C peripheral - the boot ROM does not
-	   do this */
+	 do this */
 	Chip_I2C_Init(LPC_I2C);
 
 	/* Perform a sanity check on the storage allocation */
 	if (LPC_I2CD_API->i2c_get_mem_size() > sizeof(i2cMasterHandleMEM)) {
 		/* Example only: this should never happen and probably isn't needed for
-		   most I2C code. */
+		 most I2C code. */
 		errorI2C();
 	}
 
@@ -160,22 +152,22 @@ static void setupI2CMaster()
 	}
 
 	/* Set I2C bitrate */
-	if (LPC_I2CD_API->i2c_set_bitrate(i2cHandleMaster, Chip_Clock_GetSystemClockRate(),
-									  I2C_BITRATE) != LPC_OK) {
+	if (LPC_I2CD_API->i2c_set_bitrate(i2cHandleMaster,
+			Chip_Clock_GetSystemClockRate(),
+			I2C_BITRATE) != LPC_OK) {
 		errorI2C();
 	}
 }
 
 /* I2C interrupt callback, called on completion of I2C operation when in
-   interrupt mode. Called in interrupt context. */
-static void cbI2CComplete(uint32_t err_code, uint32_t n)
-{
+ interrupt mode. Called in interrupt context. */
+static void cbI2CComplete(uint32_t err_code, uint32_t n) {
 	intErrCode = (int) err_code;
 }
 
 /* Master transmit in interrupt mode */
-static void sendI2CMaster(uint16_t AddressI2C, bool ledStateOut, uint8_t regAddr)
-{
+static void sendI2CMaster(uint16_t AddressI2C, bool ledStateOut,
+		uint8_t regAddr) {
 	uint8_t SendData[10];
 	I2C_PARAM_T param;
 	I2C_RESULT_T result;
@@ -183,22 +175,22 @@ static void sendI2CMaster(uint16_t AddressI2C, bool ledStateOut, uint8_t regAddr
 	int index = 0;
 
 	SendData[index++] = (uint8_t) AddressI2C;
-	SendData[index++] = (uint8_t) regAddr;			/* I2C device regAddr */
+	SendData[index++] = (uint8_t) regAddr; /* I2C device regAddr */
 	SendData[index++] = (uint8_t) 0x00;
 
 	SendData[index++] = (uint8_t) ledValues[ledValue];
 	SendData[index++] = (uint8_t) displayNumber;
 
 	/* Setup I2C parameters for number of bytes with stop - appears as follows on bus:
-	   Start - address7 or address10upper - ack
-	   (10 bits addressing only) address10lower - ack
-	   value 1 - ack
-	   value 2 - ack - stop */
-	param.num_bytes_send    = index;
-	param.buffer_ptr_send   = &SendData[0];
-	param.num_bytes_rec     = 0;
-	param.stop_flag         = 1;
-	param.func_pt           = cbI2CComplete;
+	 Start - address7 or address10upper - ack
+	 (10 bits addressing only) address10lower - ack
+	 value 1 - ack
+	 value 2 - ack - stop */
+	param.num_bytes_send = index;
+	param.buffer_ptr_send = &SendData[0];
+	param.num_bytes_rec = 0;
+	param.stop_flag = 1;
+	param.func_pt = cbI2CComplete;
 
 	/* Set timeout (much) greater than the transfer length */
 	LPC_I2CD_API->i2c_set_timeout(i2cHandleMaster, 100000);
@@ -207,10 +199,11 @@ static void sendI2CMaster(uint16_t AddressI2C, bool ledStateOut, uint8_t regAddr
 	intErrCode = -1;
 
 	/* Function is non-blocking, returned error should be LPC_OK, but isn't checked here */
-	error_code = LPC_I2CD_API->i2c_master_transmit_intr(i2cHandleMaster, &param, &result);
+	error_code = LPC_I2CD_API->i2c_master_transmit_intr(i2cHandleMaster, &param,
+			&result);
 
 	/* Sleep until transfer is complete, but allow IRQ to wake system
-	   to handle I2C IRQ */
+	 to handle I2C IRQ */
 	while (intErrCode == -1) {
 		__WFI();
 	}
@@ -228,8 +221,7 @@ static void sendI2CMaster(uint16_t AddressI2C, bool ledStateOut, uint8_t regAddr
 	/* Note results are only valid when there are no errors */
 }
 
-static void showNumberOnDisplay(uint8_t number, uint8_t display)
-{
+static void showNumberOnDisplay(uint8_t number, uint8_t display) {
 	ledValue = number;
 	displayNumber = display;
 	/* Set LED state on slave device */
@@ -238,11 +230,9 @@ static void showNumberOnDisplay(uint8_t number, uint8_t display)
 	__WFI();
 }
 
-static void showNumber(int number)
-{
+static void showNumber(int number) {
 	int display = 0;
-	while(number > 0 && display < 4)
-	{
+	while (number > 0 && display < 4) {
 		showNumberOnDisplay(number % 10, displays[display++]);
 		showNumberOnDisplay(SHUTDOWN, displays[display - 1]);
 		number /= 10;
@@ -256,8 +246,7 @@ static void showNumber(int number)
  * @brief	I2C interrupt handler
  * @return	Nothing
  */
-void I2C_IRQHandler(void)
-{
+void I2C_IRQHandler(void) {
 	/* Call I2C ISR function in ROM with the I2C handle */
 	LPC_I2CD_API->i2c_isr_handler(i2cHandleMaster);
 }
@@ -266,18 +255,15 @@ void I2C_IRQHandler(void)
  * @brief	Handle interrupt from SysTick timer
  * @return	Nothing
  */
-void SysTick_Handler(void)
-{
+void SysTick_Handler(void) {
 	static int ticks = 0;
 
 	ticks++;
 	if (ticks > TICKRATE_HZ) {
 		ticks = 0;
-		state ^= 1;	/* Toggle the state of bit 1 */
+		state ^= 1; /* Toggle the state of bit 1 */
 	}
 }
-
-
 
 /**
  * @brief		Function delay
@@ -288,15 +274,11 @@ static void delay(uint32_t delay) {
 	}
 }
 
-
-
-
 /**
  * @brief	Main routine for I2C example
  * @return	Function should not exit
  */
-int main(void)
-{
+int main(void) {
 	int lastState = -1;
 
 	/* Generic Initialization */
@@ -309,7 +291,7 @@ int main(void)
 	Init_I2C_PinMux();
 
 	/* Allocate I2C handle, setup I2C rate, and initialize I2C
-	   clocking */
+	 clocking */
 	setupI2CMaster();
 
 	/* Enable the interrupt for the I2C */
@@ -319,40 +301,35 @@ int main(void)
 	SysTick_Config(SystemCoreClock / TICKRATE_HZ);
 
 
-
-	/* Toggle LED on other board via I2C */
 	while (1) {
-
-      int display=0;
 		for (int i = 0; i < 4; i++) {
-					ledValue = i;
-					switch (i) {
-					case 0:
-						displayNumber = displays[3];
-						break;
-					case 1:
-						displayNumber = displays[2];
-						break;
-					case 2:
-						displayNumber = displays[1];
-						break;
-					case 3:
-						displayNumber = displays[0];
-						break;
+			int display = 0;
+			ledValue = i;
 
-					default:
-						break;
+			switch (i) {
+			case 0:
+				displayNumber = displays[3];
+				break;
+			case 1:
+				displayNumber = displays[2];
+				break;
+			case 2:
+				displayNumber = displays[1];
+				break;
+			case 3:
+				displayNumber = displays[0];
+				break;
+			default:
+				break;
+			}
 
-					}
+			sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPB_REG);
+			sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPA_REG);
+			delay(DELAY_TIME);
+			ledValue = LED_OFF;
+			sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPA_REG);
 
-					sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPB_REG);
-					sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPA_REG);
-					delay(DELAY_TIME);
-					ledValue =LED_OFF;
-					sendI2CMaster(I2C_ADDR_7BIT_1, ledState, GPA_REG);
-
-				}
-
+		}
 
 		/* Handle states */
 		switch (state) {
